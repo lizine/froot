@@ -1,7 +1,30 @@
 /**
  * Created by d0204104 on 21.8.2014.
  */
-
+// Set up requestAnimationFrame and cancelAnimationFrame for use in the game code
+(function() {
+    var lastTime = 0;
+    var vendors = ['ms', 'moz', 'webkit', 'o'];
+    for(var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
+        window.requestAnimationFrame = window[vendors[x] + 'RequestAnimationFrame'];
+        window.cancelAnimationFrame =
+            window[vendors[x] + 'CancelAnimationFrame'] ||
+            window[vendors[x] + 'CancelRequestAnimationFrame'];
+    }
+    if (!window.requestAnimationFrame)
+        window.requestAnimationFrame = function(callback, element) {
+            var currTime = new Date().getTime();
+            var timeToCall = Math.max(0, 16 - (currTime - lastTime));
+            var id = window.setTimeout(function() { callback(currTime + timeToCall); },
+                timeToCall);
+            lastTime = currTime + timeToCall;
+            return id;
+        };
+    if (!window.cancelAnimationFrame)
+        window.cancelAnimationFrame = function(id) {
+            clearTimeout(id);
+        };
+}());
 
 $(window).load(function() {
     game.init();
@@ -28,6 +51,39 @@ var game = {
     showLevelScreen:function(){
         $('.gamelayer').hide();
         $('#levelselectscreen').show('slow');
+    },
+    // Game mode
+    mode:"intro",
+// X & Y Coordinates of the slingshot
+    slingshotX:140,
+    slingshotY:280,
+    start:function(){
+        $('.gamelayer').hide();
+// Display the game canvas and score
+        $('#gamecanvas').show();
+        $('#scorescreen').show();
+        game.mode = "intro";
+        game.offsetLeft = 0;
+        game.ended = false;
+        game.animationFrame = window.requestAnimationFrame(game.animate,game.canvas);
+    },
+    handlePanning:function(){
+        game.offsetLeft++; // Temporary placeholder – keep panning to the right
+    },
+    animate:function(){
+// Animate the background
+        game.handlePanning();
+// Animate the characters
+// Draw the background with parallax scrolling
+        game.context.drawImage(game.currentLevel.backgroundImage,game.offsetLeft/4,0,640,480,0,0,640,480);
+        game.context.drawImage(game.currentLevel.foregroundImage,game.offsetLeft,0,640,480,0,0,640,480);
+// Draw the slingshot
+        game.context.drawImage(game.slingshotImage,game.slingshotX-game.offsetLeft,game.slingshotY);
+        game.context.drawImage(game.slingshotFrontImage,game.slingshotX-game.offsetLeft,game.
+            slingshotY);
+        if (!game.ended){
+            game.animationFrame = window.requestAnimationFrame(game.animate,game.canvas);
+        }
     }
 }
 
