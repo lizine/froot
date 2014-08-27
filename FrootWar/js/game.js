@@ -1,6 +1,8 @@
 /**
  * Created by d0204104 on 21.8.2014.
  */
+
+
 // Set up requestAnimationFrame and cancelAnimationFrame for use in the game code
 (function() {
     var lastTime = 0;
@@ -26,9 +28,42 @@
         };
 }());
 
+
+
+
 $(window).load(function() {
     game.init();
 });
+
+var mouse = {
+    x:0,
+    y:0,
+    down:false,
+    init:function(){
+        $('#gamecanvas').mousemove(mouse.mousemovehandler);
+        $('#gamecanvas').mousedown(mouse.mousedownhandler);
+        $('#gamecanvas').mouseup(mouse.mouseuphandler);
+        $('#gamecanvas').mouseout(mouse.mouseuphandler);
+    },
+    mousemovehandler:function(ev){
+        var offset = $('#gamecanvas').offset();
+        mouse.x = ev.pageX - offset.left;
+        mouse.y = ev.pageY - offset.top;
+        if (mouse.down) {
+            mouse.dragging = true;
+        }
+    },
+    mousedownhandler:function(ev){
+        mouse.down = true;
+        mouse.downX = mouse.x;
+        mouse.downY = mouse.y;
+        ev.originalEvent.preventDefault();
+    },
+    mouseuphandler:function(ev){
+        mouse.down = false;
+        mouse.dragging = false;
+    }
+}
 
 var game = {
 
@@ -38,6 +73,8 @@ var game = {
         // Initialize objects
         levels.init();
         loader.init();
+        mouse.init();
+
 
 // Hide all game layers and display the start screen
         $('.gamelayer').hide();
@@ -67,9 +104,66 @@ var game = {
         game.ended = false;
         game.animationFrame = window.requestAnimationFrame(game.animate,game.canvas);
     },
-    handlePanning:function(){
-        game.offsetLeft++; // Temporary placeholder – keep panning to the right
+
+    // Maximum panning speed per frame in pixels
+    maxSpeed:3,
+// Minimum and Maximum panning offset
+    minOffset:0,
+    maxOffset:300,
+// Current panning offset
+    offsetLeft:0,
+// The game score
+    score:0,
+//Pan the screen to center on newCenter
+    panTo:function(newCenter){
+        if (Math.abs(newCenter-game.offsetLeft-game.canvas.width/4) > 0
+            && game.offsetLeft <= game.maxOffset && game.offsetLeft >= game.minOffset){
+            var deltaX = Math.round((newCenter-game.offsetLeft-game.canvas.width/4)/2);
+            if (deltaX && Math.abs(deltaX) > game.maxSpeed){
+                deltaX = game.maxSpeed*Math.abs(deltaX)/(deltaX);
+            }
+            game.offsetLeft += deltaX;
+        } else {
+            return true;
+        }
+        if (game.offsetLeft < game.minOffset){
+            game.offsetLeft = game.minOffset;
+            return true;
+        } else if (game.offsetLeft > game.maxOffset){
+            game.offsetLeft = game.maxOffset;
+            return true;
+        }
+        return false;
     },
+    handlePanning:function(){
+        if(game.mode=="intro"){
+            if(game.panTo(700)){
+                game.mode = "load-next-hero";
+            }
+        }
+        if(game.mode=="wait-for-firing"){
+            if (mouse.dragging){
+                game.panTo(mouse.x + game.offsetLeft)
+            } else {
+                game.panTo(game.slingshotX);
+            }
+        }
+        if (game.mode=="load-next-hero"){
+
+// Check if any villains are alive, if not, end the level (success)
+// Check if there are any more heroes left to load, if not end the level (failure)
+// Load the hero and set mode to wait-for-firing
+            game.mode = "wait-for-firing";
+        }
+        if(game.mode == "firing"){
+            game.panTo(game.slingshotX);
+        }
+        if (game.mode == "fired"){
+
+// Pan to wherever the hero currently is
+        }
+    },
+
     animate:function(){
 // Animate the background
         game.handlePanning();
